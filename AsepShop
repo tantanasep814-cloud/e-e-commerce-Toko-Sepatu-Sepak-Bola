@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AsepShop - Toko Online Sederhana</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+        .nav-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+        .product-image img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 14px;
+        }
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+        .cart-icon {
+            position: relative;
+            font-size: 24px;
+            cursor: pointer;
+            margin-right: 20px;
+        }
+        .cart-badge {
+            background: red;
+            color: white;
+            border-radius: 50%;
+            padding: 4px 8px;
+            font-size: 12px;
+            position: absolute;
+            top: -8px;
+            right: -8px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+        @media (min-width: 768px) {
+            .product-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (min-width: 1024px) {
+            .product-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        @media (min-width: 1440px) {
+            .product-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="nav-header">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-white text-2xl font-bold">AsepShop</h1>
+            <div class="cart-icon" onclick="openCart()">
+                🛒
+                <span id="cartBadge" class="cart-badge hidden">0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto p-4">
+        <div class="product-grid" id="products">
+            <!-- Produk akan dirender di sini oleh JavaScript -->
+        </div>
+    </main>
+
+    <!-- Modal Keranjang -->
+    <div id="cartModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCart()">&times;</span>
+            <h2 class="text-xl font-bold mb-4">Keranjang Anda</h2>
+            <ul id="cartItems" class="mb-4"></ul>
+            <p class="font-bold text-lg">Total: Rp<span id="cartTotal">0.00</span></p>
+            <button onclick="checkout()" class="btn-primary w-full mt-4">Checkout</button>
+            <button onclick="closeCart()" class="btn-primary w-full mt-2" style="background: #e2e8f0; color: #2d3748;">Lanjut Berbelanja</button>
+        </div>
+    </div>
+
+    <!-- Modal Pembayaran -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closePayment()">&times;</span>
+            <h2 class="text-xl font-bold mb-4">Detail Pembayaran</h2>
+            <form id="paymentForm" onsubmit="processPayment(event)">
+                <input type="text" id="cardNumber" placeholder="Nomor Kartu (contoh: 1234-5678-9012-3456)" required class="w-full p-3 mb-3 border rounded">
+                <input type="text" id="expiryDate" placeholder="Tanggal Kadaluarsa (MM/YY)" required class="w-full p-3 mb-3 border rounded">
+                <input type="text" id="cvv" placeholder="CVV (3 digit)" required class="w-full p-3 mb-4 border rounded">
+                <button type="submit" class="btn-primary w-full">Bayar Sekarang</button>
+            </form>
+            <button onclick="closePayment()" class="btn-primary w-full mt-2" style="background: #e2e8f0; color: #2d3748;">Batal</button>
+        </div>
+    </div>
+
+    <!-- Modal Sukses -->
+    <div id="successModal" class="modal">
+        <div class="modal-content text-center">
+            <h2 class="text-2xl font-bold mb-4 text-green-600">Pembayaran Berhasil!</h2>
+            <p class="mb-4">Terima kasih atas pembelian Anda. Pesanan Anda telah dikonfirmasi.</p>
+            <button onclick="closeSuccess()" class="btn-primary w-full">Kembali Berbelanja</button>
+        </div>
+    </div>
+
+    <script>
+        // Produk sampel dengan gambar placeholder
+        const products = [
+            { id: 1,name: 'sepatu specs', price:155.000, image: 'https://i.supaimg.com/cfd9477b-8cb9-4be8-a70c-fe1ca6d051a6.jpg' },
+            { id: 2, name: 'sepatu adidas', price: 150.000, image:"https://i.supaimg.com/603df26e-ec43-49fa-8840-ffc5ca19ff9f.jpg" },
+            { id: 3, name: 'sepatu nike', price: 200.000, image: 'https://i.supaimg.com/83a5d10c-d179-45d0-9101-dc8443fb3c56.jpg' },
+            { id: 4, name: 'sepatu Cr7', price: 150.000, image: 'https://i.supaimg.com/f8ece4ba-3987-47ee-b9fe-b5b5cc14351d.jpg' },
+            { id: 5, name:'sepatu predator', price: 100.000, image: 'https://i.supaimg.com/7929e162-deb6-41e3-9d64-e0fc15471282.jpg' },
+            { id: 6, name: 'sepatu puma', price: 180.000, image: 'https://i.supaimg.com/dee17364-88d0-4cd8-bca5-1652684e2fc5.jpg' }
+        ];
+
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+        // Render produk
+        function renderProducts() {
+            const productsContainer = document.getElementById('products');
+            productsContainer.innerHTML = products.map(product => `
+                <div class="product-card">
+                    <div class="product-image">
+                        <img src="${product.image}" alt="${product.name} ditampilkan di latar depan putih bersih dengan desain modern berkualitas tinggi, bahan premium, dan estetika ramping yang cocok untuk showcase produk e-commerce" />
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-lg font-semibold mb-2">${product.name}</h3>
+                        <p class="text-gray-600 text-sm mb-3">Produk ${product.name} Supper yang lembut sehingga mudah menyesuaikan dengan bentuk kaki, mendukung performa pemain di lapangan.</p>
+                        <p class="text-xl font-bold text-blue-600 mb-3">Rp${product.price.toFixed(2)}</p>
+                        <button onclick="addToCart(${product.id})" class="btn-primary w-full">Tambah ke Keranjang</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Tambah ke keranjang
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            const existingItem = cart.find(item => item.id === productId);
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ ...product, quantity: 1 });
+            }
+            updateCart();
+            alert(`${product.name} ditambahkan ke keranjang!`);
+        }
+
+        // Update tampilan keranjang
+        function updateCart() {
+            localStorage.setItem('cart', JSON.stringify(cart));
+            const badge = document.getElementById('cartBadge');
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            badge.textContent = totalItems;
+            badge.classList.toggle('hidden', totalItems === 0);
+        }
+
+        // Buka modal keranjang
+        function openCart() {
+            const modal = document.getElementById('cartModal');
+            modal.style.display = 'block';
+            renderCartItems();
+        }
+
+        // Tutup modal keranjang
+        function closeCart() {
+            document.getElementById('cartModal').style.display = 'none';
+        }
+
+        // Render item keranjang
+        function renderCartItems() {
+            const cartItemsEl = document.getElementById('cartItems');
+            const totalEl = document.getElementById('cartTotal');
+            let total = 0;
+            cartItemsEl.innerHTML = cart.length === 0 ? '<li>Tidak ada item di keranjang</li>' : cart.map(item => {
+                total += item.price * item.quantity;
+                return `
+                    <li class="flex justify-between items-center mb-2 border-b pb-2">
+                        <span>${item.name} (Qty: ${item.quantity}) - Rp${(item.price * item.quantity).toFixed(2)}</span>
+                        <button onclick="removeFromCart(${item.id})" class="text-red-500 font-bold">Hapus</button>
+                    </li>
+                `;
+            }).join('');
+            totalEl.textContent = total.toFixed(2);
+        }
+
+        // Hapus dari keranjang
+        function removeFromCart(productId) {
+            cart = cart.filter(item => item.id !== productId);
+            updateCart();
+            renderCartItems();
+        }
+
+        // Checkout
+        function checkout() {
+            if (cart.length === 0) {
+                alert('Keranjang Anda kosong!');
+                return;
+            }
+            closeCart();
+            openPayment();
+        }
+
+        // Buka modal pembayaran
+        function openPayment() {
+            document.getElementById('paymentModal').style.display = 'block';
+        }
+
+        // Tutup modal pembayaran
+        function closePayment() {
+            document.getElementById('paymentModal').style.display = 'none';
+        }
+
+        // Proses pembayaran (simulasi sukses)
+        function processPayment(event) {
+            event.preventDefault();
+            const cardNumber = document.getElementById('cardNumber').value;
+            const expiryDate = document.getElementById('expiryDate').value;
+            const cvv = document.getElementById('cvv').value;
+
+            // Validasi dasar (anda bisa menambah validasi lebih kompleks)
+            if (!cardNumber || !expiryDate || !cvv) {
+                alert('Silakan isi semua kolom pembayaran.');
+                return;
+            }
+
+            // Simulasi pemrosesan pembayaran
+            setTimeout(() => {
+                cart = [];
+                updateCart();
+                closePayment();
+                openSuccess();
+            }, 1000); // Delay 1 detik untuk mensimulasikan pemrosesan
+        }
+
+        // Buka modal sukses
+        function openSuccess() {
+            document.getElementById('successModal').style.display = 'block';
+        }
+
+        // Tutup modal sukses
+        function closeSuccess() {
+            document.getElementById('successModal').style.display = 'none';
+        }
+
+        // Inisialisasi halaman
+        renderProducts();
+        updateCart();
+
+        // Tutup modal saat klik di luar
+        window.onclick = function(event) {
+            const cartModal = document.getElementById('cartModal');
+            const paymentModal = document.getElementById('paymentModal');
+            const successModal = document.getElementById('successModal');
+            if (event.target === cartModal) cartModal.style.display = 'none';
+            if (event.target === paymentModal) paymentModal.style.display = 'none';
+            if (event.target === successModal) successModal.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
+</content>
+</create_file>
